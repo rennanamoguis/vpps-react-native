@@ -6,6 +6,8 @@ export async function loginWithEmailPassword(
   email: string,
   password: string,
 ): Promise<SessionData> {
+  // const url = `${API_BASE_URL}/auth/login`;
+  // console.log("LOGIN URL: ", url);
   const response = await axios.post(`${API_BASE_URL}/auth/login`, {
     email,
     password,

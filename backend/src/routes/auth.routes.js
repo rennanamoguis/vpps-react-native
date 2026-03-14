@@ -109,6 +109,19 @@ router.post("/login", async (req, res) => {
       user,
     });
   } catch (error) {
+    // console.error("LOGIN ERROR:", {
+    //   message: error.message,
+    //   code: error.code,
+    //   errno: error.errno,
+    //   sqlMessage: error.sqlMessage,
+    //   sqlState: error.sqlState,
+    //   stack: error.stack,
+    // });
+
+    // return res.status(500).json({
+    //   message: "Server error.",
+    //   debug: error.message,
+    // });
     console.error("LOGIN ERROR:", error);
     return res.status(500).json({
       message: "Server error.",

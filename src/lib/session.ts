@@ -29,7 +29,7 @@ export async function getStoredSession(): Promise<SessionData | null> {
   if (!raw) return null;
   try {
     return JSON.parse(raw) as SessionData;
-  } catch (errow) {
+  } catch (error) {
     return null;
   }
 }

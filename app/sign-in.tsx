@@ -3,13 +3,13 @@ import { useTheme } from "@/src/theme/useTheme";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function SignInScreen() {
@@ -37,6 +37,7 @@ export default function SignInScreen() {
       await signIn(email.trim(), password);
       router.replace("/(tabs)");
     } catch (error: any) {
+      console.log(error);
       const message =
         error?.response?.data?.message || "Unable to login. Please try again.";
       Alert.alert("Login failed", message);
