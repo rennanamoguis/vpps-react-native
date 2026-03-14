@@ -1,17 +1,17 @@
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
 import {
-    clearSession,
-    getStoredSession,
-    isSessionExpired,
-    saveSession,
-    type SessionData,
-} from "../libs/session";
+  clearSession,
+  getStoredSession,
+  isSessionExpired,
+  saveSession,
+  type SessionData,
+} from "../lib/session";
 import { loginWithEmailPassword } from "../services/authService";
 
 type SessionContextValue = {

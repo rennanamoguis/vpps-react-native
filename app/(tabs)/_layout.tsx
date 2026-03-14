@@ -1,9 +1,19 @@
+import { useSession } from "@/src/context/SessionContext";
 import { useTheme } from "@/src/theme/useTheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 
 export default function TabLayout() {
   const theme = useTheme();
+  const { session, isLoading } = useSession();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!session) {
+    return <Redirect href="/sign-in" />;
+  }
 
   return (
     <Tabs

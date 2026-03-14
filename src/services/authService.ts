@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import type { SessionData } from "../libs/session";
+import type { SessionData } from "../lib/session";
 
 export async function loginWithEmailPassword(
   email: string,
