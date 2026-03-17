@@ -1,18 +1,24 @@
+import { useSession } from "@/src/context/SessionContext";
+import { migrateDbIfNeeded } from "@/src/database/migration";
 import {
-    getLastSyncAt,
-    getLocalCounts,
-    replaceBootstrapData,
+  beginPagedSync,
+  finalizePagedSync,
+  getLastSyncAt,
+  getLocalCounts,
+  insertVoterPageToStaging,
 } from "@/src/database/syncRepo";
+import {
+  downloadSyncMeta,
+  downloadVoterPage,
+} from "@/src/services/syncService";
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
-import { migrateDbIfNeeded } from "../database/migration";
-import { downloadBootstrap } from "../services/syncService";
-import { useSession } from "./SessionContext";
 
 type SyncStatus = "idle" | "running" | "success" | "error";
 
@@ -44,23 +50,24 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [localVoterCount, setLocalVoterCount] = useState(0);
   const [localBarangayCount, setLocalBarangayCount] = useState(0);
 
-  const refreshLocalSummary = async () => {
+  const refreshLocalSummary = useCallback(async () => {
     await migrateDbIfNeeded();
 
-    const count = await getLocalCounts();
+    const counts = await getLocalCounts();
     const syncedAt = await getLastSyncAt();
 
-    setLocalVoterCount(count.voters);
-    setLocalBarangayCount(count.barangays);
+    setLocalVoterCount(Number(counts.voters) || 0);
+    setLocalBarangayCount(Number(counts.barangays) || 0);
     setLastSyncAt(syncedAt);
-  };
-  useEffect(() => {
-    refreshLocalSummary();
   }, []);
 
-  const startFullSync = async () => {
+  useEffect(() => {
+    refreshLocalSummary();
+  }, [refreshLocalSummary]);
+
+  const startFullSync = useCallback(async () => {
     if (!session?.token) {
-      throw new Error("You must logged in before syncing.");
+      throw new Error("You must be logged in before syncing.");
     }
 
     setStatus("running");
@@ -71,25 +78,43 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     try {
       await migrateDbIfNeeded();
 
+      setProgressPercent(10);
+      setProgressText("Downloading sync metadata...");
+
+      const meta = await downloadSyncMeta(session.token);
+
+      const totalVoters = Number(meta.totalVoters ?? 0);
+      const pageSize = Number(meta.pageSize ?? 1000);
+      const totalPages = Math.max(1, Math.ceil(totalVoters / pageSize));
+
       setProgressPercent(15);
-      setProgressText("Downloading voters and barangays from the server...");
+      setProgressText("Preparing staging tables...");
 
-      const payload = await downloadBootstrap(session.token);
+      const searchedIdSet = await beginPagedSync(meta.barangays);
 
-      setProgressPercent(30);
-      setProgressText("Saving downloaded records to offline storage...");
+      let downloaded = 0;
 
-      await replaceBootstrapData(payload, (done, total) => {
-        const base = 35;
-        const span = 55;
-        const value = total > 0 ? base + Math.round((done / total) * span) : 90;
+      for (let page = 1; page <= totalPages; page++) {
+        const pageData = await downloadVoterPage(session.token, page, pageSize);
+        const insertedCount = await insertVoterPageToStaging(
+          pageData.voters,
+          searchedIdSet,
+        );
 
-        setProgressPercent(value);
-        setProgressText(`Saving local records... ${done}/${total}`);
-      });
+        downloaded += insertedCount;
+
+        const progress =
+          15 + Math.round((downloaded / Math.max(totalVoters, 1)) * 75);
+        setProgressPercent(Math.min(progress, 90));
+        setProgressText(
+          `Downloading and saving voters... ${downloaded}/${totalVoters}`,
+        );
+      }
 
       setProgressPercent(95);
-      setProgressText("Refreshing local summary...");
+      setProgressText("Finalizing local database...");
+
+      await finalizePagedSync(meta.syncedAt);
 
       await refreshLocalSummary();
 
@@ -106,7 +131,15 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       );
       throw error;
     }
-  };
+  }, [session, refreshLocalSummary]);
+
+  const hideOverlay = useCallback(() => {
+    setOverlayVisible(false);
+  }, []);
+
+  const showOverlay = useCallback(() => {
+    setOverlayVisible(true);
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -119,8 +152,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       localVoterCount,
       localBarangayCount,
       startFullSync,
-      hideOverlay: () => setOverlayVisible(false),
-      showOverlay: () => setOverlayVisible(true),
+      hideOverlay,
+      showOverlay,
       refreshLocalSummary,
     }),
     [
@@ -131,6 +164,10 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       lastSyncAt,
       localVoterCount,
       localBarangayCount,
+      startFullSync,
+      hideOverlay,
+      showOverlay,
+      refreshLocalSummary,
     ],
   );
 

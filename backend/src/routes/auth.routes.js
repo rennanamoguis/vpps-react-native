@@ -30,7 +30,7 @@ function buildToken(user) {
     {
       userId: user.id,
       email: user.email,
-      assignedMunicipality: user.assignedMunicipality,
+      assignedMunicipality: user.assigned_municipality,
     },
     process.env.JWT_SECRET,
     {
