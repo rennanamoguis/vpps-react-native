@@ -11,10 +11,12 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DataScreen() {
   const theme = useTheme();
   const { session } = useSession();
+  const insets = useSafeAreaInsets();
   const {
     status,
     isSyncing,
@@ -46,9 +48,16 @@ export default function DataScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.surface.background }]}>
+    <View
+      style={[
+        styles.root,
+        { backgroundColor: theme.surface.background, paddingTop: insets.top },
+      ]}
+    >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: theme.text.primary }]}>Data</Text>
+        <Text style={[styles.title, { color: theme.navigation.tabActive }]}>
+          Data
+        </Text>
         <Text style={[styles.subtitle, { color: theme.text.secondary }]}>
           Assigned municipality:{" "}
           {session?.user.municipality_name || "Not available"}
@@ -161,7 +170,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#25292e",
   },
   content: {
-    padding: 20,
+    // padding: 20,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 20,
     gap: 16,
   },
   title: {

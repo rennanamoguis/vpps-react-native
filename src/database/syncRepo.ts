@@ -153,7 +153,10 @@ export async function insertVoterPageToStaging(
   return safeVoters.length;
 }
 
-export async function finalizePagedSync(syncedAt: string) {
+export async function finalizePagedSync(
+  syncedAt: string,
+  municipalityId: number,
+) {
   const db = await migrateDbIfNeeded();
 
   await db?.withExclusiveTransactionAsync(async (txn) => {
@@ -195,7 +198,7 @@ export async function finalizePagedSync(syncedAt: string) {
 
     await txn.runAsync(
       `INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)`,
-      ["lastSyncAt", syncedAt],
+      ["offlineMunicipalityId", String(municipalityId)],
     );
 
     await txn.runAsync(`DELETE FROM voters_staging`);
@@ -203,4 +206,27 @@ export async function finalizePagedSync(syncedAt: string) {
   });
 
   return getLocalCounts();
+}
+
+export async function getOfflineMunicipalityId() {
+  const db = await migrateDbIfNeeded();
+
+  const row = await db?.getFirstAsync<{ value: string }>(
+    `SELECT value FROM sync_meta WHERE key = ?`,
+    ["offlineMunicipalityId"],
+  );
+
+  return row?.value ? Number(row.value) : null;
+}
+
+export async function clearOfflineData() {
+  const db = await migrateDbIfNeeded();
+
+  await db?.withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(`DELETE FROM voters`);
+    await txn.runAsync(`DELETE FROM barangay`);
+    await txn.runAsync(`DELETE FROM voters_staging`);
+    await txn.runAsync(`DELETE FROM barangay_staging`);
+    await txn.runAsync(`DELETE FROM sync_meta`);
+  });
 }

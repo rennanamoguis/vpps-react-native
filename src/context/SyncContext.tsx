@@ -5,7 +5,7 @@ import {
   finalizePagedSync,
   getLastSyncAt,
   getLocalCounts,
-  insertVoterPageToStaging,
+  insertVoterPageToStaging
 } from "@/src/database/syncRepo";
 import {
   downloadSyncMeta,
@@ -114,7 +114,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setProgressPercent(95);
       setProgressText("Finalizing local database...");
 
-      await finalizePagedSync(meta.syncedAt);
+      await finalizePagedSync(meta.syncedAt, meta.municipalityId);
 
       await refreshLocalSummary();
 

@@ -11,10 +11,12 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
   const theme = useTheme();
   const { session, signIn } = useSession();
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +54,7 @@ export default function SignInScreen() {
         styles.root,
         {
           backgroundColor: theme.surface.background,
+          paddingTop: insets.top,
         },
       ]}
     >

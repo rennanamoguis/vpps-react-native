@@ -3,10 +3,12 @@ import { useTheme } from "@/src/theme/useTheme";
 import { router } from "expo-router";
 import React from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const { session, signOut } = useSession();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -28,6 +30,7 @@ export default function ProfileScreen() {
         styles.root,
         {
           backgroundColor: theme.surface.background,
+          paddingTop: insets.top,
         },
       ]}
     >
@@ -35,7 +38,7 @@ export default function ProfileScreen() {
         style={[
           styles.title,
           {
-            color: theme.text.primary,
+            color: theme.navigation.tabActive,
           },
         ]}
       >
@@ -77,7 +80,10 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    padding: 20,
+    //padding: 20,
+    paddingLeft: 20,
+    paddingBottom: 20,
+    paddingRight: 20,
   },
   title: {
     fontSize: 30,

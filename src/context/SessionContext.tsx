@@ -6,6 +6,10 @@ import React, {
   useState,
 } from "react";
 import {
+  clearOfflineData,
+  getOfflineMunicipalityId,
+} from "../database/syncRepo";
+import {
   clearSession,
   getStoredSession,
   isSessionExpired,
@@ -50,8 +54,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     reloadSession();
   }, []);
 
+  const ensureOfflineDataMatchesUser = async (assignedMunicipality: number) => {
+    const offlineMunicipalityId = await getOfflineMunicipalityId();
+    if (
+      offlineMunicipalityId != null &&
+      offlineMunicipalityId !== assignedMunicipality
+    ) {
+      await clearOfflineData();
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     const result = await loginWithEmailPassword(email, password);
+
+    await ensureOfflineDataMatchesUser(result.user.assigned_municipality);
+
     await saveSession(result);
     setSession(result);
   };

@@ -23,6 +23,7 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor: theme.navigation.tabBarBackground,
         },
+        headerShown: false,
         headerShadowVisible: false,
         headerTintColor: theme.navigation.tabActive,
         tabBarStyle: {
