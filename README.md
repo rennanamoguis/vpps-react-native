@@ -1,50 +1,170 @@
-# Welcome to your Expo app 👋
+# VPPS (Voters Poll Precinct Search)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobile-first voter precinct lookup app for PPCRV volunteers, with offline search support and a companion Express + MySQL backend.
 
-## Get started
+## Overview
 
-1. Install dependencies
+VPPS lets authenticated users:
 
-   ```bash
-   npm install
-   ```
+- sign in with email/password
+- download municipality-scoped voter data to local SQLite storage
+- search voters offline by barangay and full name
+- mark voters as "searched"
+- update profile image and change password
 
-2. Start the app
+The repository includes:
 
-   ```bash
-   npx expo start
-   ```
+- `app` + `src`: Expo React Native frontend
+- `backend`: Express API for auth, sync, and profile endpoints
 
-In the output, you'll find options to open the app in a
+## Tech Stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Frontend: Expo 54, React Native, Expo Router, TypeScript, Expo SQLite, SecureStore
+- Backend: Node.js, Express, MySQL2, JWT, bcrypt, multer
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+.
+├── app/                 # Expo Router screens
+├── src/                 # Frontend components, services, db, context
+├── backend/
+│   ├── src/             # Express API
+│   └── scripts/         # Utility scripts (e.g. password hashing)
+├── assets/              # App icons/images
+└── README.md
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Prerequisites
 
-## Learn more
+- Node.js 20+ (LTS recommended)
+- npm
+- MySQL 8+ (or compatible MySQL server)
+- Expo Go app or Android/iOS emulator/simulator
 
-To learn more about developing your project with Expo, look at the following resources:
+## Environment Variables
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Frontend (`.env` at repo root)
 
-## Join the community
+```bash
+EXPO_PUBLIC_API_URL=http://YOUR_HOST_IP:3000/api
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=YOUR_GOOGLE_WEB_CLIENT_ID
+```
 
-Join our community of developers creating universal apps.
+Notes:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `EXPO_PUBLIC_API_URL` is required.
+- Google login UI exists but the current login flow uses email/password.
+
+### Backend (`backend/.env`)
+
+```bash
+PORT=3000
+APP_BASE_URL=http://YOUR_HOST_IP:3000
+JWT_SECRET=replace_with_a_strong_secret
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=your_db_name
+```
+
+`APP_BASE_URL` is used to build absolute URLs for uploaded profile images.
+
+## Installation
+
+1. Install frontend dependencies:
+
+```bash
+npm install
+```
+
+2. Install backend dependencies:
+
+```bash
+cd backend
+npm install
+cd ..
+```
+
+## Running Locally
+
+1. Start backend API:
+
+```bash
+cd backend
+npm run dev
+```
+
+2. In another terminal, start Expo app:
+
+```bash
+npm start
+```
+
+3. Open the app on:
+
+- Android emulator
+- iOS simulator
+- Expo Go (physical device)
+
+If using a physical device, `EXPO_PUBLIC_API_URL` should use your machine's LAN IP, not `localhost`.
+
+## Available Scripts
+
+### Frontend
+
+- `npm start` - start Expo dev server
+- `npm run android` - open Android target
+- `npm run ios` - open iOS target
+- `npm run web` - run web target
+- `npm run lint` - run lint checks
+
+### Backend
+
+- `cd backend && npm run dev` - run API with nodemon
+- `cd backend && npm start` - run API with node
+
+### Utility
+
+- `cd backend && node scripts/hash-existing-passwords.js`  
+  Hashes plaintext passwords in `app_users` (safe to run once during migration to bcrypt).
+
+## API Endpoints
+
+Base path: `/api`
+
+- `GET /health`
+- `POST /auth/login`
+- `GET /auth/me` (Bearer token)
+- `GET /sync/meta` (Bearer token)
+- `GET /sync/voters?page=1&limit=1000` (Bearer token)
+- `POST /profile/image` (Bearer token, multipart `avatar`)
+- `POST /profile/change-password` (Bearer token)
+
+## Database Notes
+
+Backend queries currently expect these MySQL tables to exist:
+
+- `app_users`
+- `municipality`
+- `comelec`
+- `barangay`
+- `tbl_priority`
+- `tbl_verify`
+
+The mobile app manages its own local SQLite cache (`vpps.db`) for offline search.
+
+## Core Flow
+
+1. User signs in (`/api/auth/login`) and session is stored in SecureStore.
+2. User triggers data update in the **Data** tab.
+3. App downloads paged voters from `/api/sync/*` and writes to local SQLite.
+4. Search tab reads local data only, so lookup works offline.
+
+## Team
+
+- Developer: TEAM TAGABARYO
+- Support: info@tagabaryo.com
+- Website: https://tagabaryo.com/
