@@ -69,10 +69,10 @@ export function VoterListItem({ voter, onMarkSearched }: Props) {
       </View>
 
       <View style={styles.bottomRow}>
-        <Text style={[styles.badgeText, { color: theme.text.secondary }]}>
+        <Text style={[styles.badgeText, { color: theme.brand.secondary }]}>
           {voter.verification || "Verified"}
         </Text>
-        <Text style={[styles.badgeText, { color: theme.text.secondary }]}>
+        <Text style={[styles.badgeText, { color: theme.brand.secondary }]}>
           {voter.priority_meaning || "-"}
         </Text>
       </View>

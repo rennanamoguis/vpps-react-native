@@ -51,16 +51,28 @@ export default function DataScreen() {
     <View
       style={[
         styles.root,
-        { backgroundColor: theme.surface.background, paddingTop: insets.top },
+        {
+          backgroundColor: theme.surface.background,
+          paddingTop: insets.top + 48,
+        },
       ]}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { color: theme.navigation.tabActive }]}>
+        {/* <Text style={[styles.title, { color: theme.navigation.tabActive }]}>
           Data
-        </Text>
+        </Text> */}
         <Text style={[styles.subtitle, { color: theme.text.secondary }]}>
           Assigned municipality:{" "}
-          {session?.user.municipality_name || "Not available"}
+          <Text
+            style={[
+              styles.subtitleValue,
+              {
+                color: theme.brand.secondary,
+              },
+            ]}
+          >
+            {session?.user.municipality_name || "Not available"}
+          </Text>
         </Text>
         <View
           style={[
@@ -183,6 +195,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitleValue: {
+    fontWeight: "700",
   },
   card: {
     borderRadius: 22,
