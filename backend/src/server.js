@@ -6,6 +6,7 @@ const path = require("path");
 
 const authRoutes = require("./routes/auth.routes");
 const syncRoutes = require("./routes/sync.routes");
+const profileRoutes = require("./routes/profile.routes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sync", syncRoutes);
+app.use("/api/profile", profileRoutes);
 
 const PORT = process.env.PORT || 3000;
 

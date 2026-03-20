@@ -1,3 +1,7 @@
+import {
+  cacheRemoteProfileImage,
+  toAbsoluteImageUrl,
+} from "@/src/lib/imgCache";
 import React, {
   createContext,
   useContext,
@@ -15,6 +19,7 @@ import {
   isSessionExpired,
   saveSession,
   type SessionData,
+  type SessionUser,
 } from "../lib/session";
 import { loginWithEmailPassword } from "../services/authService";
 
@@ -24,15 +29,45 @@ type SessionContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   reloadSession: () => Promise<void>;
+  updateSessionUser: (partialUser: Partial<SessionUser>) => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | undefined>(
   undefined,
 );
 
+async function attachCachedProfileImage(sessionData: SessionData) {
+  const remoteUrl = toAbsoluteImageUrl(sessionData.user.img);
+  if (!remoteUrl) {
+    return sessionData;
+  }
+  const localUri = await cacheRemoteProfileImage(
+    remoteUrl,
+    sessionData.user.id,
+  );
+
+  return {
+    ...sessionData,
+    user: {
+      ...sessionData.user,
+      img_local_uri: localUri,
+    },
+  };
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const ensureOfflineDataMatchesUser = async (assignedMunicipality: number) => {
+    const offlineMunicipalityId = await getOfflineMunicipalityId();
+    if (
+      offlineMunicipalityId != null &&
+      offlineMunicipalityId !== assignedMunicipality
+    ) {
+      await clearOfflineData();
+    }
+  };
 
   const reloadSession = async () => {
     setIsLoading(true);
@@ -54,23 +89,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     reloadSession();
   }, []);
 
-  const ensureOfflineDataMatchesUser = async (assignedMunicipality: number) => {
-    const offlineMunicipalityId = await getOfflineMunicipalityId();
-    if (
-      offlineMunicipalityId != null &&
-      offlineMunicipalityId !== assignedMunicipality
-    ) {
-      await clearOfflineData();
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
     const result = await loginWithEmailPassword(email, password);
 
     await ensureOfflineDataMatchesUser(result.user.assigned_municipality);
 
-    await saveSession(result);
-    setSession(result);
+    const hydrated = await attachCachedProfileImage(result);
+
+    await saveSession(hydrated);
+    setSession(hydrated);
+  };
+
+  const updateSessionUser = async (partialUser: Partial<SessionUser>) => {
+    if (!session) return;
+    const nextSession: SessionData = {
+      ...session,
+      user: {
+        ...session.user,
+        ...partialUser,
+      },
+    };
+    await saveSession(nextSession);
+    setSession(nextSession);
   };
 
   const signOut = async () => {
@@ -85,6 +125,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       reloadSession,
+      updateSessionUser,
     }),
     [session, isLoading],
   );

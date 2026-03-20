@@ -9,6 +9,7 @@ export type SessionUser = {
   nick_name: string | null;
   email: string;
   img: string | null;
+  img_local_uri?: string | null;
   assigned_municipality: number;
   municipality_name: string | null;
   status: boolean;
