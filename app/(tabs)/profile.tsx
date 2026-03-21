@@ -383,11 +383,16 @@ export default function ProfileScreen() {
 
           <View style={styles.buttonGroup}>
             <Pressable
-              style={[
+              android_ripple={{ color: theme.surface.border }}
+              style={({ pressed }) => [
                 styles.outlineButton,
                 {
                   borderColor: theme.text.primary,
-                  opacity: isUploadingImage ? 0.7 : 1,
+                  opacity: isUploadingImage
+                    ? 0.7
+                    : Platform.OS === "ios" && pressed
+                      ? 0.9
+                      : 1,
                 },
               ]}
               onPress={handlePickImage}
@@ -408,10 +413,12 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={[
+              android_ripple={{ color: theme.brand.onPrimaryContainer }}
+              style={({ pressed }) => [
                 styles.outlineButton,
                 {
                   borderColor: theme.text.primary,
+                  opacity: Platform.OS === "ios" && pressed ? 0.9 : 1,
                 },
               ]}
               onPress={() => setIsPasswordModalVisible(true)}
@@ -427,10 +434,12 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={[
+              android_ripple={{ color: theme.brand.primaryContainer }}
+              style={({ pressed }) => [
                 styles.logoutButton,
                 {
                   backgroundColor: theme.brand.secondary,
+                  opacity: Platform.OS === "ios" && pressed ? 0.9 : 1,
                 },
               ]}
               onPress={handleLogout}
@@ -655,6 +664,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,
+    overflow: "hidden",
   },
 
   outlineButtonText: {
@@ -670,6 +680,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 18,
+    overflow: "hidden",
   },
 
   logoutButtonText: {

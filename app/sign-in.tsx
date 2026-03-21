@@ -1,10 +1,12 @@
 import { useSession } from "@/src/context/SessionContext";
 import { useTheme } from "@/src/theme/useTheme";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +23,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -58,7 +61,6 @@ export default function SignInScreen() {
         },
       ]}
     >
-      {/*Decorative shapes*/}
       <View
         style={[
           styles.shapeTopRight,
@@ -81,6 +83,7 @@ export default function SignInScreen() {
         <Text style={[styles.welcome, { color: theme.text.primary }]}>
           Welcome!
         </Text>
+
         <Text style={[styles.subtitle, { color: theme.text.primary }]}>
           Please login to continue
         </Text>
@@ -102,32 +105,59 @@ export default function SignInScreen() {
           value={email}
           onChangeText={setEmail}
         />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={theme.components.inputPlaceholder}
+
+        <View
           style={[
-            styles.input,
+            styles.passwordWrap,
             {
               backgroundColor: theme.components.inputBackground,
-              color: theme.text.primary,
               borderColor: theme.surface.border,
             },
           ]}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        >
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor={theme.components.inputPlaceholder}
+            style={[
+              styles.passwordInput,
+              {
+                color: theme.text.primary,
+              },
+            ]}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Pressable
+            onPress={() => setShowPassword((prev) => !prev)}
+            style={styles.eyeButton}
+            hitSlop={10}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={22}
+              color={theme.text.secondary}
+            />
+          </Pressable>
+        </View>
+
         <Pressable>
           <Text style={[styles.forgotText, { color: theme.brand.primary }]}>
             Forgot Password
           </Text>
         </Pressable>
+
         <Pressable
-          style={[
+          android_ripple={{ color: theme.brand.onPrimary }}
+          style={({ pressed }) => [
             styles.loginButton,
             {
               backgroundColor: theme.brand.primary,
-              opacity: isSubmitting ? 0.7 : 1,
+              opacity: isSubmitting
+                ? 0.7
+                : Platform.OS === "ios" && pressed
+                  ? 0.85
+                  : 1,
             },
           ]}
           onPress={handleLogin}
@@ -148,26 +178,35 @@ export default function SignInScreen() {
             </Text>
           )}
         </Pressable>
+
         <Pressable
-          style={[
+          android_ripple={{ color: theme.surface.border }}
+          style={({ pressed }) => [
             styles.googleButton,
             {
               borderColor: theme.brand.secondary,
               backgroundColor: theme.surface.surface,
+              opacity: Platform.OS === "ios" && pressed ? 0.9 : 1,
             },
           ]}
-          disabled
         >
-          <Text
-            style={[
-              styles.googleButtonText,
-              {
-                color: theme.brand.secondary,
-              },
-            ]}
-          >
-            Login with Google
-          </Text>
+          <View style={styles.googleButtonContent}>
+            <Ionicons
+              name="logo-google"
+              size={20}
+              color={theme.brand.secondary}
+            />
+            <Text
+              style={[
+                styles.googleButtonText,
+                {
+                  color: theme.brand.secondary,
+                },
+              ]}
+            >
+              Login with Google
+            </Text>
+          </View>
         </Pressable>
       </View>
     </View>
@@ -178,56 +217,97 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+
   content: {
     flex: 1,
     paddingHorizontal: 32,
     paddingTop: 140,
   },
+
   welcome: {
     fontSize: 42,
     fontWeight: "800",
   },
+
   subtitle: {
     marginTop: 8,
     fontSize: 24,
-    marginBottom: 48,
+    marginBottom: 32,
   },
+
   input: {
-    height: 74,
+    height: 64,
     borderRadius: 18,
-    paddingHorizontal: 22,
+    paddingHorizontal: 18,
     fontSize: 18,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
   },
+
+  passwordWrap: {
+    height: 64,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingLeft: 18,
+    paddingRight: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  passwordInput: {
+    flex: 1,
+    fontSize: 18,
+  },
+
+  eyeButton: {
+    marginLeft: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   forgotText: {
     textAlign: "right",
     fontSize: 17,
     marginBottom: 36,
   },
+
   loginButton: {
-    height: 72,
+    height: 58,
     borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    overflow: "hidden",
   },
+
   loginButtonText: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "500",
     letterSpacing: 1,
   },
+
   googleButton: {
     height: 58,
     borderRadius: 29,
     borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
+
+  googleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
   googleButtonText: {
     fontSize: 16,
     fontWeight: "600",
   },
+
   shapeTopRight: {
     position: "absolute",
     top: 40,
@@ -235,12 +315,9 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 40,
-    transform: [
-      {
-        rotate: "45deg",
-      },
-    ],
+    transform: [{ rotate: "45deg" }],
   },
+
   shapeBottomLeft: {
     position: "absolute",
     bottom: 40,
@@ -248,10 +325,6 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 40,
-    transform: [
-      {
-        rotate: "45deg",
-      },
-    ],
+    transform: [{ rotate: "45deg" }],
   },
 });

@@ -97,11 +97,11 @@ export async function searchVotersByBarangayAndFullname(
     [cleanBarangay, `%${cleanKeyword}%`],
   );
 
-  console.log("LOCAL SEARCH DEBUG:", {
-    barangay: cleanBarangay,
-    keyword: cleanKeyword,
-    resultCount: rows.length,
-  });
+  // console.log("LOCAL SEARCH DEBUG:", {
+  //   barangay: cleanBarangay,
+  //   keyword: cleanKeyword,
+  //   resultCount: rows.length,
+  // });
 
   return rows;
 }

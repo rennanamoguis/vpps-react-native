@@ -106,11 +106,11 @@ export default function Index() {
         setIsSearching(true);
 
         const barangayCount = await getVoterCountForBarangay(selectedBarangay);
-        console.log("BARANGAY LOCAL COUNT:", {
-          selectedBarangay,
-          barangayCount,
-          keyword: debouncedKeyword,
-        });
+        // console.log("BARANGAY LOCAL COUNT:", {
+        //   selectedBarangay,
+        //   barangayCount,
+        //   keyword: debouncedKeyword,
+        // });
 
         const rows = await searchVotersByBarangayAndFullname(
           selectedBarangay,
