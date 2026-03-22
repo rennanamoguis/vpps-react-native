@@ -3,8 +3,39 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const authMiddleware = require("../middleware/auth");
+const { OAuth2Client } = require("google-auth-library");
+const db = require("../config/db");
 
 const router = express.Router();
+const googleClient = new OAuth2Client();
+
+function buildAuthResponse(user) {
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      assigned_municipality: user.assigned_municipality,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" },
+  );
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      firstname: user.firstname,
+      middlename: user.middlename,
+      lastname: user.lastname,
+      nick_name: user.nick_name,
+      email: user.email,
+      img: user.img || null,
+      assigned_municipality: user.assigned_municipality,
+      municipality_name: user.municipality_name || null,
+      status: Boolean(Number(user.status)),
+    },
+  };
+}
 
 function normalizeBoolean(value) {
   return value === true || value === 1 || value === "1";
@@ -30,7 +61,7 @@ function buildToken(user) {
     {
       userId: user.id,
       email: user.email,
-      assignedMunicipality: user.assigned_municipality,
+      assigned_municipality: user.assigned_municipality,
     },
     process.env.JWT_SECRET,
     {
@@ -151,6 +182,85 @@ router.get("/me", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("ME ERROR: ", error);
     return res.status(500).json({ message: "Server error." });
+  }
+});
+
+router.post("/google", async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({
+      message: "Google ID token is required.",
+    });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_WEB_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email) {
+      return res.status(401).json({
+        message: "Invalid Google token payload.",
+      });
+    }
+
+    if (!payload.email_verified) {
+      return res.status(401).json({
+        message: "Google email is not verified.",
+      });
+    }
+
+    const email = String(payload.email).trim().toLowerCase();
+    const [rows] = await db.execute(
+      `
+        SELECT
+            u.id,
+            u.firstname,
+            u.middlename,
+            u.lastname,
+            u.nick_name,
+            u.email,
+            u.password,
+            u.img,
+            u.assigned_municipality,
+            u.status,
+            m.municipality_name
+        FROM app_users u
+        LEFT JOIN municipality m
+            ON m.id = u.assigned_municipality
+        WHERE u.email = ?
+        LIMIT 1
+      `,
+      [email],
+    );
+
+    if (!rows.length) {
+      return res.status(403).json({
+        message: "This Google account is not authorized for this app.",
+      });
+    }
+
+    const user = rows[0];
+
+    if (!Boolean(Number(user.status))) {
+      return res.status(403).json({
+        message: "This account is inactive.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Google login successful.",
+      ...buildAuthResponse(user),
+    });
+  } catch (error) {
+    console.error("GOOGLE LOGIN ERROR:", error);
+    return res.status(401).json({
+      message: "Google token verification failed.",
+    });
   }
 });
 
