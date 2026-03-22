@@ -1,16 +1,30 @@
-import { Directory, File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { API_ORIGIN } from "../config/api";
 
-export function toAbsoluteImageUrl(imgPath?: string | null) {
-  if (!imgPath) return null;
-  if (/^https?:\/\//i.test(imgPath)) return imgPath;
-  return `${API_ORIGIN}${imgPath}`;
+export function toAbsoluteImageUrl(imagePath?: string | null) {
+  if (!imagePath) return null;
+
+  const cleaned = String(imagePath).trim();
+
+  if (
+    !cleaned ||
+    cleaned.toLowerCase() === "null" ||
+    cleaned.toLowerCase() === "undefined"
+  ) {
+    return null;
+  }
+
+  if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+    return cleaned;
+  }
+
+  return `${API_ORIGIN}${cleaned.startsWith("/") ? cleaned : `/${cleaned}`}`;
 }
 
 function getExtensionFromUrl(url: string) {
   const cleanUrl = url.split("?")[0];
   const match = cleanUrl.match(/\.([a-zA-Z0-9]+)$/);
-  return match ? match[1].toLowerCase() : ".jpg";
+  return match ? match[1].toLowerCase() : "jpg";
 }
 
 function makeSafeName(input: string) {
@@ -27,25 +41,27 @@ function buildCacheFileName(userId: number, remoteUrl: string) {
 export async function cacheRemoteProfileImage(
   remoteUrl: string,
   userId: number,
-) {
+): Promise<string | null> {
   try {
-    const directory = new Directory(Paths.cache, "profile-images");
-    directory.create({ idempotent: true, intermediates: true });
+    if (!remoteUrl) return null;
 
     const fileName = buildCacheFileName(userId, remoteUrl);
-    const file = new File(directory, fileName);
+    const localPath = `${FileSystem.cacheDirectory}${fileName}`;
 
-    if (file.exists) {
-      return file.uri;
+    const fileInfo = await FileSystem.getInfoAsync(localPath);
+    if (fileInfo.exists) {
+      return localPath;
     }
 
-    const downloaded = await File.downloadFileAsync(remoteUrl, file, {
-      idempotent: true,
-    });
+    const result = await FileSystem.downloadAsync(remoteUrl, localPath);
 
-    return downloaded.uri;
-  } catch (error) {
-    console.error("PROFILE IMAGE CACHE ERROR:", error);
+    if (result.status !== 200) {
+      return null;
+    }
+
+    return result.uri;
+  } catch (error: any) {
+    console.log("PROFILE IMAGE CACHE SKIPPED:", error?.message || error);
     return null;
   }
 }

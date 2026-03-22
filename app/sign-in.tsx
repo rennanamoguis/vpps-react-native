@@ -1,6 +1,10 @@
 import { useSession } from "@/src/context/SessionContext";
 import { useTheme } from "@/src/theme/useTheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+  GoogleSignin,
+  statusCodes,
+} from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -17,19 +21,48 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
   const theme = useTheme();
-  const { session, signIn } = useSession();
+  const { session, signIn, signInWithGoogle } = useSession();
   const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   useEffect(() => {
     if (session) {
       router.replace("/(tabs)");
     }
   }, [session]);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleSubmitting(true);
+
+      const result = await GoogleSignin.signIn();
+      if (result.type !== "success") {
+        return;
+      }
+
+      const { idToken } = await GoogleSignin.getTokens();
+      if (!idToken) {
+        throw new Error("Google did not return an ID token.");
+      }
+
+      await signInWithGoogle(idToken);
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      if (error?.code === statusCodes.IN_PROGRESS) {
+        Alert.alert("Google Sign-In", "Google sign-in is already in progress.");
+        return;
+      }
+
+      Alert.alert("Google Sign-In", error?.message || "Google login failed.");
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -180,13 +213,19 @@ export default function SignInScreen() {
         </Pressable>
 
         <Pressable
+          onPress={handleGoogleLogin}
+          disabled={isGoogleSubmitting}
           android_ripple={{ color: theme.surface.border }}
           style={({ pressed }) => [
             styles.googleButton,
             {
               borderColor: theme.brand.secondary,
               backgroundColor: theme.surface.surface,
-              opacity: Platform.OS === "ios" && pressed ? 0.9 : 1,
+              opacity: isGoogleSubmitting
+                ? 0.7
+                : Platform.OS === "ios" && pressed
+                  ? 0.9
+                  : 1,
             },
           ]}
         >

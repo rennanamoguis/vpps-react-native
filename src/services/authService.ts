@@ -24,3 +24,35 @@ export async function getMe(token: string) {
 
   return response.data;
 }
+
+export async function loginWithGoogleIdToken(idToken: string) {
+  const response = await fetch(`${API_BASE_URL}/auth/google`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ idToken }),
+  });
+
+  const rawText = await response.text();
+
+  // console.log("GOOGLE LOGIN STATUS:", response.status);
+  // console.log("GOOGLE LOGIN URL:", response.url);
+  // console.log("GOOGLE LOGIN RAW RESPONSE:", rawText);
+
+  let data: any = null;
+
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch (error) {
+    throw new Error(
+      `Expected JSON but got non-JSON response. Status: ${response.status}. Body starts with: ${rawText.slice(0, 120)}`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Google login failed.");
+  }
+
+  return data;
+}

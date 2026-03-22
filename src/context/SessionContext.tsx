@@ -21,12 +21,16 @@ import {
   type SessionData,
   type SessionUser,
 } from "../lib/session";
-import { loginWithEmailPassword } from "../services/authService";
+import {
+  loginWithEmailPassword,
+  loginWithGoogleIdToken,
+} from "../services/authService";
 
 type SessionContextValue = {
   session: SessionData | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   reloadSession: () => Promise<void>;
   updateSessionUser: (partialUser: Partial<SessionUser>) => Promise<void>;
@@ -38,9 +42,11 @@ const SessionContext = createContext<SessionContextValue | undefined>(
 
 async function attachCachedProfileImage(sessionData: SessionData) {
   const remoteUrl = toAbsoluteImageUrl(sessionData.user.img);
+
   if (!remoteUrl) {
     return sessionData;
   }
+
   const localUri = await cacheRemoteProfileImage(
     remoteUrl,
     sessionData.user.id,
@@ -55,18 +61,38 @@ async function attachCachedProfileImage(sessionData: SessionData) {
   };
 }
 
+function getAssignedMunicipalityId(sessionData: SessionData): number | null {
+  return sessionData.user.assigned_municipality ?? null;
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const ensureOfflineDataMatchesUser = async (assignedMunicipality: number) => {
+  const ensureOfflineDataMatchesUser = async (
+    assignedMunicipality: number | null,
+  ) => {
+    if (assignedMunicipality == null) return;
+
     const offlineMunicipalityId = await getOfflineMunicipalityId();
+
     if (
       offlineMunicipalityId != null &&
       offlineMunicipalityId !== assignedMunicipality
     ) {
       await clearOfflineData();
     }
+  };
+
+  const finalizeSession = async (result: SessionData) => {
+    const assignedMunicipality = getAssignedMunicipalityId(result);
+
+    await ensureOfflineDataMatchesUser(assignedMunicipality);
+
+    const hydrated = await attachCachedProfileImage(result);
+
+    await saveSession(hydrated);
+    setSession(hydrated);
   };
 
   const reloadSession = async () => {
@@ -91,17 +117,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const result = await loginWithEmailPassword(email, password);
+    await finalizeSession(result);
+  };
 
-    await ensureOfflineDataMatchesUser(result.user.assigned_municipality);
-
-    const hydrated = await attachCachedProfileImage(result);
-
-    await saveSession(hydrated);
-    setSession(hydrated);
+  const signInWithGoogle = async (idToken: string) => {
+    const result = await loginWithGoogleIdToken(idToken);
+    await finalizeSession(result);
   };
 
   const updateSessionUser = async (partialUser: Partial<SessionUser>) => {
     if (!session) return;
+
     const nextSession: SessionData = {
       ...session,
       user: {
@@ -109,6 +135,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         ...partialUser,
       },
     };
+
     await saveSession(nextSession);
     setSession(nextSession);
   };
@@ -123,6 +150,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       session,
       isLoading,
       signIn,
+      signInWithGoogle,
       signOut,
       reloadSession,
       updateSessionUser,
@@ -137,8 +165,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
 export function useSession() {
   const context = useContext(SessionContext);
+
   if (!context) {
     throw new Error("useSession must be used inside SessionProvider");
   }
+
   return context;
 }

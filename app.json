@@ -10,7 +10,11 @@
     "description": "Voters Poll Precinct Search Application",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tagabaryo.vpps",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,11 +47,22 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-sqlite",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.877367216504-ncnrqivree4omooks2f0e8c5dttshsa2"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1537503a-d095-4185-8e7f-af673a72be03"
+      }
     }
   }
 }
